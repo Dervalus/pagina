@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Verificador de Verbos</title>
+<style>
+body { font-family: Arial; padding: 10px; text-align: center; background: #f9f9f9; }
+h2 { margin-bottom: 20px; }
+table { border-collapse: collapse; width: 100%; max-width: 600px; margin: 0 auto; }
+th, td { border: 1px solid #999; padding: 8px; text-align: center; }
+th { background-color: #f2f2f2; }
+input { width: 90%; padding: 8px; font-size: 14px; box-sizing: border-box; }
+.correct { background-color: #c8e6c9; }
+.incorrect { background-color: #ffcdd2; }
+button { margin: 20px auto; display: block; padding: 10px 20px; font-size: 16px; cursor: pointer; }
+@media (max-width: 600px) {
+  table { width: 100%; display: block; overflow-x: auto; }
+  input { font-size: 16px; padding: 12px; }
+}
+</style>
+</head>
+<body>
+
+<h2>Verificador de Verbos</h2>
+
+<table id="verbTable">
+  <thead>
+    <tr>
+      <th>Infinitivo</th>
+      <th>Pasado</th>
+      <th>Presente</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for verb in verbs %}
+    <tr>
+      <td>{{ verb }}</td>
+      <td><input type="text"></td>
+      <td><input type="text"></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<button onclick="checkAllVerbs()">Verificar Todo</button>
+
+<script>
+// Verifica una fila
+async function checkVerbRow(row) {
+    const infinitive = row.cells[0].textContent.trim();
+    const pastInput = row.cells[1].querySelector("input").value.trim();
+    const presentInput = row.cells[2].querySelector("input").value.trim();
+
+    const response = await fetch("/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ infinitive, past: pastInput, present: presentInput })
+    });
+
+    const result = await response.json();
+
+    row.cells[1].querySelector("input").className = result.past ? "correct" : "incorrect";
+    row.cells[2].querySelector("input").className = result.present ? "correct" : "incorrect";
+}
+
+// Verifica toda la tabla
+async function checkAllVerbs() {
+    const table = document.getElementById("verbTable").tBodies[0];
+    for (let row of table.rows) {
+        await checkVerbRow(row);
+    }
+}
+
+// Agrega listener para Enter y cambio de fila
+function addEnterListeners() {
+    const table = document.getElementById("verbTable").tBodies[0];
+    for (let i = 0; i < table.rows.length; i++) {
+        const row = table.rows[i];
+        for (let input of row.querySelectorAll("input")) {
+            input.addEventListener("keypress", async function(event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    await checkVerbRow(row);
+                    // pasar al input de la fila siguiente
+                    const nextRow = table.rows[i + 1];
+                    if (nextRow) nextRow.cells[1].querySelector("input").focus();
+                }
+            });
+        }
+    }
+}
+
+// Ejecutar al cargar la página
+document.addEventListener("DOMContentLoaded", addEnterListeners);
+</script>
+
+</body>
+</html>
